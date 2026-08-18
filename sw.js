@@ -6,7 +6,7 @@
 
 const CACHE_NAME = 'honorarios-shell-v1';
 const SHELL_FILES = [
-  './honorarios.html',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
