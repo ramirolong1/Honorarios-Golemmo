@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Honorarios — Cobranza Mensual</title>
+
+<!-- PWA: permite "Agregar a pantalla de inicio" / instalar como app -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1319">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Honorarios">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://script.google.com https://script.googleusercontent.com;">
+<style>
+  :root{
+    --bg:#0f1319;
+    --panel:#161b23;
+    --panel-2:#1c222c;
+    --border:#262e3a;
+    --text:#e7ebf1;
+    --muted:#8b96a5;
+    --accent:#3ddc97;
+    --accent-dim:#245c47;
+    --warn:#f5a623;
+    --danger:#ff6b5c;
+    --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --sans:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    padding:22px 28px 0 28px;
+    border-bottom:1px solid var(--border);
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .brand .mark{
+    font-family:var(--mono);
+    color:var(--accent);
+    font-size:13px;
+    letter-spacing:.12em;
+    border:1px solid var(--accent-dim);
+    padding:3px 7px;
+    border-radius:4px;
+  }
+  .brand h1{
+    font-size:19px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:-.01em;
+  }
+  nav{display:flex; gap:4px;}
+  nav button{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-family:var(--sans);
+    font-size:14px;
+    font-weight:500;
+    padding:10px 16px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    transition:color .15s;
+  }
+  nav button:hover{color:var(--text);}
+  nav button.active{color:var(--text); border-bottom-color:var(--accent);}
+  main{padding:24px 28px 60px 28px; max-width:980px; margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:22px;}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px 18px;
+  }
+  .card .label{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;}
+  .card .value{font-family:var(--mono); font-size:24px; font-weight:600;}
+  .card .value.accent{color:var(--accent);}
+  .card .value.warn{color:var(--warn);}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:20px;
+  }
+  .panel-head{
+    padding:14px 18px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .panel-head h2{font-size:14px; margin:0; font-weight:600;}
+  .panel-body{padding:16px 18px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--muted);
+    font-weight:600;
+    padding:8px 10px;
+    border-bottom:1px solid var(--border);
+  }
+  td{padding:10px; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:13px;}
+  tr:last-child td{border-bottom:none;}
+  td.name{font-family:var(--sans); font-weight:500;}
+  .pill{
+    display:inline-block;
+    font-family:var(--sans);
+    font-size:11px;
+    font-weight:600;
+    padding:2px 9px;
+    border-radius:20px;
+  }
+  .pill.pendiente{background:rgba(255,107,92,.14); color:var(--danger);}
+  .pill.parcial{background:rgba(245,166,35,.14); color:var(--warn);}
+  .pill.pagado{background:rgba(61,220,151,.14); color:var(--accent);}
+  label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; margin-top:14px;}
+  label:first-child{margin-top:0;}
+  input[type=text], input[type=number], input[type=date], select{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 11px;
+    border-radius:7px;
+    font-family:var(--sans);
+    font-size:14px;
+  }
+  input:focus, select:focus{outline:none; border-color:var(--accent);}
+  .btn{
+    background:var(--accent);
+    color:#0a1410;
+    border:none;
+    font-weight:600;
+    font-size:14px;
+    padding:10px 18px;
+    border-radius:7px;
+    cursor:pointer;
+    margin-top:18px;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn.secondary{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text);
+  }
+  .cuota-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 10px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    margin-bottom:6px;
+    font-size:13.5px;
+  }
+  .cuota-row input[type=checkbox]{width:16px; height:16px; accent-color:var(--accent);}
+  .cuota-row .mes{flex:1; font-weight:500;}
+  .cuota-row .saldo{font-family:var(--mono); color:var(--muted);}
+  .empty{color:var(--muted); font-size:13.5px; padding:6px 0;}
+  th.sortable{cursor:pointer; user-select:none;}
+  th.sortable:hover{color:var(--text);}
+  .sort-arrow{font-size:10px; color:var(--accent); display:inline-block; width:8px;}
+  .msg{
+    font-size:13px;
+    padding:9px 12px;
+    border-radius:7px;
+    margin-top:12px;
+  }
+  .msg.ok{background:rgba(61,220,151,.1); color:var(--accent); border:1px solid var(--accent-dim);}
+  .msg.err{background:rgba(255,107,92,.1); color:var(--danger); border:1px solid rgba(255,107,92,.3);}
+  .subtabs{display:flex; gap:6px; margin-bottom:16px;}
+  .subtabs button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--muted);
+    font-size:13px;
+    font-weight:500;
+    padding:7px 14px;
+    border-radius:7px;
+    cursor:pointer;
+  }
+  .subtabs button.active{color:var(--text); border-color:var(--accent); background:rgba(61,220,151,.08);}
+  .row-actions{display:flex; gap:8px;}
+  .row-actions button{
+    background:none; border:1px solid var(--border); color:var(--muted);
+    font-size:11.5px; padding:4px 9px; border-radius:5px; cursor:pointer; font-family:var(--sans);
+  }
+  .toggle-inactivo td{opacity:.45;}
+  .footer-note{color:var(--muted); font-size:12px; margin-top:14px; line-height:1.5;}
+  @media (max-width:640px){
+    header, main{padding-left:16px; padding-right:16px;}
+    table, thead, tbody, th, td, tr{display:block;}
+    thead{display:none;}
+    tr{border-bottom:1px solid var(--border); padding:8px 0;}
+    td{border:none; padding:3px 0;}
+    td:before{content:attr(data-label); display:inline-block; width:110px; color:var(--muted); font-family:var(--sans); font-size:11px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="mark">HON</span>
+    <h1>Cobranza de Honorarios</h1>
+  </div>
+  <nav>
+    <button class="active" data-view="pendientes">Pendientes</button>
+    <button data-view="pagos">Pagos</button>
+    <button data-view="clientes">Clientes</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ===== PENDIENTES ===== -->
+  <div class="view active" id="view-pendientes">
+    <div class="cards">
+      <div class="card">
+        <div class="label">Total adeudado</div>
+        <div class="value warn" id="totalAdeudado">$0</div>
+      </div>
+      <div class="card">
+        <div class="label">Clientes con deuda</div>
+        <div class="value" id="cantClientesDeuda">0</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Pendientes por cliente</h2>
+        <button class="btn secondary" style="margin:0; padding:6px 12px; font-size:12.5px;" onclick="cargarPendientes()">Actualizar</button>
+      </div>
+      <div class="panel-body">
+        <table>
+          <thead><tr>
+            <th class="sortable" onclick="ordenarPendientes('cliente')">Cliente <span class="sort-arrow" id="arrow-cliente"></span></th>
+            <th class="sortable" onclick="ordenarPendientes('meses')">Meses pendientes <span class="sort-arrow" id="arrow-meses"></span></th>
+            <th class="sortable" style="text-align:right;" onclick="ordenarPendientes('saldo')">Saldo <span class="sort-arrow" id="arrow-saldo"></span></th>
+          </tr></thead>
+          <tbody id="tablaPendientes"></tbody>
+        </table>
+        <div class="empty" id="pendientesEmpty" style="display:none;">No hay deuda pendiente cargada.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGOS ===== -->
+  <div class="view" id="view-pagos">
+    <div class="subtabs">
+      <button class="active" data-sub="cargar">Cargar pago</button>
+      <button data-sub="historial">Historial</button>
+    </div>
+
+    <div id="sub-cargar">
+      <div class="panel">
+        <div class="panel-body">
+          <label>Cliente</label>
+          <select id="pagoCliente" onchange="cargarCuotasCliente()"></select>
+
+          <label>Meses a cancelar</label>
+          <div id="cuotasCliente"><div class="empty">Elegí un cliente para ver sus meses pendientes.</div></div>
+
+          <label>Fecha del pago</label>
+          <input type="date" id="pagoFecha">
+
+          <label>Monto</label>
+          <input type="text" inputmode="decimal" id="pagoMonto" placeholder="0,00">
+
+          <label>Detalle</label>
+          <input type="text" id="pagoDetalle" placeholder="Ej: transferencia, efectivo...">
+
+          <button class="btn" onclick="registrarPago()">Registrar pago</button>
+          <div id="pagoMsg"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="sub-historial" style="display:none;">
+      <div class="panel" id="editPagoPanel" style="display:none;">
+        <div class="panel-head"><h2>Editar pago</h2></div>
+        <div class="panel-body">
+          <label>Fecha</label>
+          <input type="date" id="editFecha">
+          <label>Monto</label>
+          <input type="text" inputmode="decimal" id="editMonto" placeholder="0,00">
+          <label>Detalle</label>
+          <input type="text" id="editDetalle">
+          <div class="footer-note">Los meses que cancela este pago no se reasignan al editarlo; si cambiás el monto, se vuelve a repartir sobre los mismos meses.</div>
+          <button class="btn" onclick="guardarEdicionPago()">Guardar cambios</button>
+          <button class="btn secondary" onclick="cancelarEdicionPago()">Cancelar</button>
+          <div id="editPagoMsg"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Pagos registrados</h2>
+          <button class="btn secondary" style="margin:0; padding:6px 12px; font-size:12.5px;" onclick="cargarHistorial()">Actualizar</button>
+        </div>
+        <div class="panel-body">
+          <table>
+            <thead><tr><th>Fecha</th><th>Cliente</th><th>Detalle</th><th style="text-align:right;">Monto</th><th></th></tr></thead>
+            <tbody id="tablaHistorial"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CLIENTES ===== -->
+  <div class="view" id="view-clientes">
+    <div class="panel">
+      <div class="panel-head"><h2>Nuevo cliente</h2></div>
+      <div class="panel-body">
+        <label>Nombre</label>
+        <input type="text" id="nuevoNombre" placeholder="Nombre del cliente">
+        <label>Honorario actual</label>
+        <input type="number" id="nuevoHonorario" step="0.01" placeholder="0.00">
+        <button class="btn" onclick="crearCliente()">Agregar cliente</button>
+        <div id="clienteMsg"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Clientes</h2>
+        <button class="btn secondary" style="margin:0; padding:6px 12px; font-size:12.5px;" onclick="cargarClientes()">Actualizar</button>
+      </div>
+      <div class="panel-body">
+        <table>
+          <thead><tr><th>Nombre</th><th style="text-align:right;">Honorario actual</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="tablaClientes"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ============ CONFIGURACIÓN ============
+// Pegá acá la URL de tu implementación de Apps Script (Implementar > Nueva implementación > Aplicación web)
+const API_URL = 'https://script.google.com/macros/s/AKfycbx4QZn0Htg2vWBej93NyKUmO0F2MiissxSeXnwpKa2aSUoB7Y0zHtxzRByOXgftko68/exec';
+
+// Pegá acá el token que generaste una sola vez ejecutando generarTokenApi()
+// en el editor de Apps Script (ver instrucciones al principio de Code.gs).
+// Sin este token, la API rechaza todos los pedidos.
+const API_TOKEN = 'bb80075a-f02d-4524-aabb-46883a5211f61056476f3d3147f2990d142cb89369ec';
+
+// ============ NAVEGACIÓN ============
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + btn.dataset.view).classList.add('active');
+    if (btn.dataset.view === 'pendientes') cargarPendientes();
+    if (btn.dataset.view === 'pagos') { cargarClientesSelect(); }
+    if (btn.dataset.view === 'clientes') cargarClientes();
+  });
+});
+
+document.querySelectorAll('.subtabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.subtabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('sub-cargar').style.display = btn.dataset.sub === 'cargar' ? 'block' : 'none';
+    document.getElementById('sub-historial').style.display = btn.dataset.sub === 'historial' ? 'block' : 'none';
+    if (btn.dataset.sub === 'historial') cargarHistorial();
+  });
+});
+
+// ============ HELPERS ============
+function fmtMoney(n) {
+  return '$' + Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Para campos editables: mismo formato pero sin el símbolo $, para poder
+// reingresarlo. parseNumberInput hace el camino inverso al guardar.
+function formatNumberInput(n) {
+  if (n === '' || n === null || n === undefined || isNaN(n)) return '';
+  return Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function parseNumberInput(str) {
+  if (str === '' || str === null || str === undefined) return NaN;
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.'));
+}
+
+// Escapa texto antes de insertarlo como HTML (evita que un nombre, detalle,
+// u otro dato guardado en la planilla pueda inyectar HTML/JS en la página).
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function apiGet(action, params = {}) {
+  const qs = new URLSearchParams({ action, token: API_TOKEN, ...params }).toString();
+  const res = await fetch(`${API_URL}?${qs}`);
+  return res.json();
+}
+
+async function apiPost(body) {
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS con Apps Script
+    body: JSON.stringify({ ...body, token: API_TOKEN })
+  });
+  return res.json();
+}
+
+function showMsg(elId, text, ok) {
+  const el = document.getElementById(elId);
+  el.innerHTML = `<div class="msg ${ok ? 'ok' : 'err'}">${text}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+// ============ PENDIENTES ============
+let pendientesData = [];
+let pendientesSort = { col: 'saldo', dir: 'desc' };
+
+async function cargarPendientes() {
+  pendientesData = await apiGet('resumenPendientes');
+  renderPendientes();
+}
+
+function ordenarPendientes(col) {
+  if (pendientesSort.col === col) {
+    pendientesSort.dir = pendientesSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    pendientesSort.col = col;
+    pendientesSort.dir = col === 'cliente' ? 'asc' : 'desc';
+  }
+  renderPendientes();
+}
+
+function renderPendientes() {
+  const tbody = document.getElementById('tablaPendientes');
+  const emptyEl = document.getElementById('pendientesEmpty');
+
+  const { col, dir } = pendientesSort;
+  const sorted = [...pendientesData].sort((a, b) => {
+    let va, vb;
+    if (col === 'cliente') { va = a.cliente.toLowerCase(); vb = b.cliente.toLowerCase(); }
+    else if (col === 'meses') { va = a.meses.length; vb = b.meses.length; }
+    else { va = a.totalAdeudado; vb = b.totalAdeudado; }
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  ['cliente', 'meses', 'saldo'].forEach(c => {
+    document.getElementById('arrow-' + c).textContent = c === col ? (dir === 'asc' ? '▲' : '▼') : '';
+  });
+
+  tbody.innerHTML = '';
+  emptyEl.style.display = sorted.length ? 'none' : 'block';
+  let total = 0;
+  sorted.forEach(c => {
+    total += c.totalAdeudado;
+    tbody.innerHTML += `
+      <tr>
+        <td class="name" data-label="Cliente">${escapeHtml(c.cliente)}</td>
+        <td data-label="Meses">${escapeHtml(c.meses.join(', '))}</td>
+        <td data-label="Saldo" style="text-align:right; color:var(--warn);">${fmtMoney(c.totalAdeudado)}</td>
+      </tr>`;
+  });
+  document.getElementById('totalAdeudado').textContent = fmtMoney(total);
+  document.getElementById('cantClientesDeuda').textContent = sorted.length;
+}
+
+// ============ PAGOS: cargar cliente ============
+async function cargarClientesSelect() {
+  const clientes = await apiGet('clientes');
+  const sel = document.getElementById('pagoCliente');
+  sel.innerHTML = '<option value="">Seleccioná un cliente</option>';
+  clientes.filter(c => c.activo === 'SI').forEach(c => {
+    sel.innerHTML += `<option value="${escapeHtml(c.id)}" data-nombre="${escapeHtml(c.nombre)}" data-honorario="${escapeHtml(c.honorarioActual)}">${escapeHtml(c.nombre)}</option>`;
+  });
+  document.getElementById('cuotasCliente').innerHTML = '<div class="empty">Elegí un cliente para ver sus meses pendientes.</div>';
+  document.getElementById('pagoFecha').valueAsDate = new Date();
+}
+
+async function cargarCuotasCliente() {
+  const sel = document.getElementById('pagoCliente');
+  const clienteId = sel.value;
+  const cont = document.getElementById('cuotasCliente');
+  if (!clienteId) {
+    cont.innerHTML = '<div class="empty">Elegí un cliente para ver sus meses pendientes.</div>';
+    document.getElementById('pagoMonto').value = '';
+    honorarioClienteActual = null;
+    return;
+  }
+  // Autocompleta con el honorario actual del cliente (formateado); queda editable.
+  // Si después tildás meses pendientes, recalcularMonto() lo reemplaza
+  // por la suma de los saldos tildados (también editable).
+  const honorario = sel.selectedOptions[0]?.dataset.honorario;
+  honorarioClienteActual = honorario ? Number(honorario) : null;
+  if (honorarioClienteActual !== null) document.getElementById('pagoMonto').value = formatNumberInput(honorarioClienteActual);
+  const cuotas = await apiGet('deudaPendiente', { clienteId });
+  if (!cuotas.length) {
+    cont.innerHTML = '<div class="empty">Este cliente no tiene meses pendientes.</div>';
+    return;
+  }
+  cont.innerHTML = cuotas.map(q => `
+    <label class="cuota-row" style="cursor:pointer;">
+      <input type="checkbox" class="cuota-check" value="${escapeHtml(q.id)}" data-saldo="${q.saldo}" onchange="recalcularMonto()">
+      <span class="mes">${escapeHtml(q.mesNombre)} ${escapeHtml(q.año)}</span>
+      <span class="saldo">${fmtMoney(q.saldo)}</span>
+    </label>`).join('');
+}
+
+let honorarioClienteActual = null;
+
+function recalcularMonto() {
+  const checks = document.querySelectorAll('.cuota-check:checked');
+  if (checks.length > 0) {
+    let total = 0;
+    checks.forEach(c => total += Number(c.dataset.saldo));
+    document.getElementById('pagoMonto').value = formatNumberInput(total);
+  } else if (honorarioClienteActual !== null) {
+    document.getElementById('pagoMonto').value = formatNumberInput(honorarioClienteActual);
+  }
+}
+
+async function registrarPago() {
+  const sel = document.getElementById('pagoCliente');
+  const clienteId = sel.value;
+  const clienteNombre = sel.selectedOptions[0]?.dataset.nombre;
+  const fecha = document.getElementById('pagoFecha').value;
+  const montoTexto = document.getElementById('pagoMonto').value;
+  const monto = parseNumberInput(montoTexto);
+  const detalle = document.getElementById('pagoDetalle').value;
+  const cuotasIds = Array.from(document.querySelectorAll('.cuota-check:checked')).map(c => c.value);
+
+  if (!clienteId || !fecha || !montoTexto || isNaN(monto)) {
+    showMsg('pagoMsg', 'Completá cliente, fecha y monto.', false);
+    return;
+  }
+
+  const res = await apiPost({
+    action: 'addPago',
+    clienteId, cliente: clienteNombre, fecha, monto, detalle, cuotasIds
+  });
+
+  if (res.error) {
+    showMsg('pagoMsg', res.error, false);
+    return;
+  }
+  showMsg('pagoMsg', 'Pago registrado correctamente.', true);
+  limpiarFormularioPago();
+}
+
+function limpiarFormularioPago() {
+  document.getElementById('pagoCliente').value = '';
+  document.getElementById('cuotasCliente').innerHTML = '<div class="empty">Elegí un cliente para ver sus meses pendientes.</div>';
+  document.getElementById('pagoFecha').valueAsDate = new Date();
+  document.getElementById('pagoMonto').value = '';
+  document.getElementById('pagoDetalle').value = '';
+  honorarioClienteActual = null;
+}
+
+document.getElementById('pagoMonto').addEventListener('blur', function () {
+  const parsed = parseNumberInput(this.value);
+  if (!isNaN(parsed)) this.value = formatNumberInput(parsed);
+});
+document.getElementById('pagoMonto').addEventListener('focus', function () { this.select(); });
+
+// ============ HISTORIAL DE PAGOS ============
+async function cargarHistorial() {
+  const pagos = await apiGet('pagos');
+  const tbody = document.getElementById('tablaHistorial');
+  tbody.innerHTML = pagos.map(p => `
+    <tr>
+      <td data-label="Fecha">${new Date(p.fecha).toLocaleDateString('es-AR')}</td>
+      <td class="name" data-label="Cliente">${escapeHtml(p.cliente)}</td>
+      <td data-label="Detalle">${escapeHtml(p.detalle) || '—'}</td>
+      <td data-label="Monto" style="text-align:right;">${fmtMoney(p.monto)}</td>
+      <td class="row-actions" data-label="">
+        <button onclick="handleEditarPagoClick(this)"
+          data-id="${escapeHtml(p.id)}"
+          data-fecha="${new Date(p.fecha).toISOString().slice(0, 10)}"
+          data-monto="${p.monto}"
+          data-detalle="${escapeHtml(p.detalle || '')}">Editar</button>
+        <button onclick="eliminarPago('${escapeHtml(p.id)}')">Eliminar</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="5" class="empty">No hay pagos registrados.</td></tr>';
+}
+
+let editandoPagoId = null;
+
+function handleEditarPagoClick(btn) {
+  editarPago(btn.dataset.id, btn.dataset.fecha, btn.dataset.monto, btn.dataset.detalle);
+}
+
+function editarPago(id, fecha, monto, detalle) {
+  editandoPagoId = id;
+  document.getElementById('editFecha').value = fecha;
+  document.getElementById('editMonto').value = formatNumberInput(monto);
+  document.getElementById('editDetalle').value = detalle || '';
+  document.getElementById('editPagoPanel').style.display = 'block';
+  document.getElementById('editPagoPanel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelarEdicionPago() {
+  editandoPagoId = null;
+  document.getElementById('editPagoPanel').style.display = 'none';
+}
+
+async function guardarEdicionPago() {
+  const fecha = document.getElementById('editFecha').value;
+  const montoTexto = document.getElementById('editMonto').value;
+  const monto = parseNumberInput(montoTexto);
+  const detalle = document.getElementById('editDetalle').value;
+  if (!fecha || isNaN(monto)) {
+    showMsg('editPagoMsg', 'Completá fecha y monto válidos.', false);
+    return;
+  }
+  const res = await apiPost({ action: 'editPago', id: editandoPagoId, fecha, monto, detalle });
+  if (res.error) {
+    showMsg('editPagoMsg', res.error, false);
+    return;
+  }
+  showMsg('editPagoMsg', 'Pago actualizado.', true);
+  cancelarEdicionPago();
+  cargarHistorial();
+}
+
+async function eliminarPago(id) {
+  if (!confirm('¿Eliminar este pago? Esto va a restaurar el saldo pendiente de los meses que cancelaba.')) return;
+  const res = await apiPost({ action: 'deletePago', id });
+  if (res.error) {
+    alert(res.error);
+    return;
+  }
+  cargarHistorial();
+}
+
+document.getElementById('editMonto').addEventListener('blur', function () {
+  const parsed = parseNumberInput(this.value);
+  if (!isNaN(parsed)) this.value = formatNumberInput(parsed);
+});
+document.getElementById('editMonto').addEventListener('focus', function () { this.select(); });
+
+// ============ CLIENTES ============
+async function crearCliente() {
+  const nombre = document.getElementById('nuevoNombre').value.trim();
+  const honorario = document.getElementById('nuevoHonorario').value;
+  if (!nombre || !honorario) {
+    showMsg('clienteMsg', 'Completá nombre y honorario.', false);
+    return;
+  }
+  const res = await apiPost({ action: 'addCliente', nombre, honorario });
+  if (res.error) { showMsg('clienteMsg', res.error, false); return; }
+  showMsg('clienteMsg', 'Cliente agregado.', true);
+  document.getElementById('nuevoNombre').value = '';
+  document.getElementById('nuevoHonorario').value = '';
+  cargarClientes();
+}
+
+async function cargarClientes() {
+  const clientes = await apiGet('clientes');
+  const tbody = document.getElementById('tablaClientes');
+  tbody.innerHTML = clientes.map(c => `
+    <tr class="${c.activo !== 'SI' ? 'toggle-inactivo' : ''}">
+      <td class="name" data-label="Nombre">${escapeHtml(c.nombre)}</td>
+      <td data-label="Honorario">
+        <span class="honorario-display" id="honDisplay-${escapeHtml(c.id)}">${fmtMoney(c.honorarioActual)}</span>
+        <input type="number" step="0.01" value="${c.honorarioActual}" id="honInput-${escapeHtml(c.id)}"
+          style="width:120px; display:none;">
+      </td>
+      <td data-label="Estado"><span class="pill ${c.activo === 'SI' ? 'pagado' : 'pendiente'}">${c.activo === 'SI' ? 'Activo' : 'Inactivo'}</span></td>
+      <td class="row-actions" data-label="">
+        <button onclick="editarHonorario('${escapeHtml(c.id)}')" id="honBtn-${escapeHtml(c.id)}">Editar</button>
+        <button onclick="toggleActivo('${escapeHtml(c.id)}', '${escapeHtml(c.activo)}')">${c.activo === 'SI' ? 'Desactivar' : 'Activar'}</button>
+      </td>
+    </tr>`).join('');
+}
+
+function editarHonorario(id) {
+  const display = document.getElementById('honDisplay-' + id);
+  const input = document.getElementById('honInput-' + id);
+  const btn = document.getElementById('honBtn-' + id);
+  if (input.style.display === 'none') {
+    display.style.display = 'none';
+    input.style.display = 'inline-block';
+    input.focus();
+    btn.textContent = 'Guardar';
+  } else {
+    guardarHonorario(id);
+  }
+}
+
+async function guardarHonorario(id) {
+  const input = document.getElementById('honInput-' + id);
+  await apiPost({ action: 'editCliente', id, honorario: input.value });
+  showMsg('clienteMsg', 'Honorario actualizado.', true);
+  cargarClientes();
+}
+
+async function toggleActivo(id, activoActual) {
+  const nuevo = activoActual === 'SI' ? 'NO' : 'SI';
+  await apiPost({ action: 'editCliente', id, activo: nuevo });
+  cargarClientes();
+}
+
+// ============ INIT ============
+// Al abrir la app, se genera (si todavía no existe) la cuota del mes corriente
+// para cada cliente activo. Es idempotente: si ya se generó (por el trigger
+// automático o en una visita anterior), no duplica nada.
+async function init() {
+  await apiPost({ action: 'generarDeuda' });
+  cargarPendientes();
+}
+init();
+
+// Registra el service worker para que el navegador ofrezca "Instalar app" /
+// "Agregar a pantalla de inicio". Solo cachea el shell (HTML/manifest/íconos);
+// los datos siempre se piden en vivo.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      // Si falla (ej. abierto como archivo local con file://), la app
+      // sigue funcionando normal, simplemente no será instalable.
+    });
+  });
+}
+</script>
+</body>
+</html>
