@@ -2,7 +2,7 @@
   "name": "Cobranza de Honorarios",
   "short_name": "Honorarios",
   "description": "Cobranza mensual de honorarios contables",
-  "start_url": "./honorarios.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
